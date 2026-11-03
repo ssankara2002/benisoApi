@@ -1,4 +1,4 @@
-name: Build and Deploy BENISO
+name: Build and Deploy BENISO API
 
 'on':
   push:
