@@ -30,6 +30,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          no-cache: true
           tags: |
             ssarata/apibeniso:latest
             ssarata/apibeniso:${{ github.sha }}
