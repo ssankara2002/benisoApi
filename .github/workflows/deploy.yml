@@ -1,4 +1,4 @@
-```yaml
+```yamlZZ
 name: Build and Deploy to VPS
 
 on:
