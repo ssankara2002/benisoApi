@@ -1,0 +1,102 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production
+
+# Build output ghhhhhhhhhhhhhhhhhhhhhh
+dist/
+build/
+*.js.map
+*.js
+!*.config.js
+!ecosystem.config.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Prisma
+prisma/migrations/*_migration.sql
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.history/
+
+# Docker (uncomment if needed)
+# Dockerfile
+# docker-compose.yml
+# .dockerignore
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Documentation générée et fichiers de test
+*.md~
+MONEROO_METHODS.md
+MONEROO_PAYMENT_API_GUIDE.md
+MONEROO_PAYOUT_STATUS.md
+PAIEMENT_SCOLARITE_GUIDE.md
+INSCRIPTION_ELEVE_GUIDE.md
+BULLETIN_API.md
+CRUD_TRIMESTRE_TYPEMATIERE.md
+FICHIERS_CREES.txt
+RAPPEL_MOYENNES_README.md
+README_RAPPEL_MOYENNES.txt
+RAPPORT_SUPPRESSION_TABLES.md
+TABLES_A_SUPPRIMER.md
+TESTS_ENDPOINTS_RAPPEL.md
+CALCUL_MOYENNES_GUIDE.md
+sarata.md
+BULLETIN_CORRECTIONS_FINALES.md
+BULLETIN_TABLEAU_GRILLE.md
+GUIDE_PAIEMENT_MONEROO.md
+INSCRIPTION_AUTO_DETECTION.md
+SWAGGER_INSCRIPTION_UPDATED.md
+BULLETIN_CORRECTIONS_FINALES.md,
+
+# Fichiers de test
+test_*.ts
+test_*.sh
+*_test.ts
+verifier_*.ts
+!prisma/seed.ts
+generate-test-token.ts
+check-eleve-password.ts
+get-eleve-info.ts
+
+# Bulletins générés
+bulletins/
+
+# Uploads
+uploads

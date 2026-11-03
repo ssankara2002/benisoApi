@@ -1,0 +1,67 @@
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: gestion-ecole-db
+    restart: unless-stopped
+    command: postgres -c max_connections=200
+    environment:
+      POSTGRES_USER: ${DB_USER:-gestion_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-gestion_ecole}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gestion-ecole-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gestion_user} -d ${DB_NAME:-gestion_ecole}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Node.js
+  api:
+    image: ssarata/gestion-ecole-api1:latest
+    container_name: gestion-ecole-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      API_URL: "${API_URL}"
+      LICENCE_ENABLED: ${LICENCE_ENABLED:-true}
+      DATABASE_URL: postgresql://${DB_USER:-gestion_user}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-gestion_ecole}?schema=public&connection_limit=5&pool_timeout=20
+      JWT_SECRET: ${JWT_SECRET:-default_jwt_secret_change_me}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      AQILAS_AUTH_TOKEN: ${AQILAS_AUTH_TOKEN}
+      AQILAS_SENDER_ID: ${AQILAS_SENDER_ID}
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gestion-ecole-network
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  gestion-ecole-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

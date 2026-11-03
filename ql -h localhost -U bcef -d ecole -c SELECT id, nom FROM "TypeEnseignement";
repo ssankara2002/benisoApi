@@ -1,0 +1,19 @@
+                                               Table « public.Annee »
+    Colonne     |              Type              | Collationnement | NULL-able |             Par défaut              
+----------------+--------------------------------+-----------------+-----------+-------------------------------------
+ id             | integer                        |                 | not null  | nextval('"Annee_id_seq"'::regclass)
+ dateDebut      | timestamp(3) without time zone |                 |           | 
+ dateFin        | timestamp(3) without time zone |                 |           | 
+ hasAssociation | boolean                        |                 | not null  | false
+ createdAt      | timestamp(3) without time zone |                 | not null  | CURRENT_TIMESTAMP
+ updatedAt      | timestamp(3) without time zone |                 | not null  | 
+Index :
+    "Annee_pkey" PRIMARY KEY, btree (id)
+Référencé par :
+    TABLE ""Budget"" CONSTRAINT "Budget_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+    TABLE ""EnseignementAnnee"" CONSTRAINT "EnseignementAnnee_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+    TABLE ""Evaluation"" CONSTRAINT "Evaluation_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+    TABLE ""Inscription"" CONSTRAINT "Inscription_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+    TABLE ""Transaction"" CONSTRAINT "Transaction_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+    TABLE ""Trimestre"" CONSTRAINT "Trimestre_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"(id) ON UPDATE CASCADE
+

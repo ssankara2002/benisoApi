@@ -1,0 +1,816 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Absence {
+  id            Int      @id @default(autoincrement())
+  dateDebut     DateTime
+  dateFin       DateTime
+  motif         String
+  justification Boolean
+  eleveId       Int?
+  staffId       Int?
+  matiereId     Int
+  classeId      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        Int?
+  classe        Classe   @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  eleve         Eleve?   @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  matiere       Matiere  @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  staff         Staff?   @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model Accueil {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  titre       String?
+  description String?
+  logoEcole   String?
+  images      String[]
+  userId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Actualite {
+  id                Int      @id @default(autoincrement())
+  nom               String
+  date              DateTime @default(now())
+  description       String?
+  imageIllustration String?
+  typeId            Int
+  userId            Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  type              Type     @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Annee {
+  id                  Int                 @id @default(autoincrement())
+  dateDebut           DateTime?
+  dateFin             DateTime?
+  hasAssociation      Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  budgets             Budget[]
+  emploisDuTemps      EmploiDuTemps[]
+  enseignementsAnnees EnseignementAnnee[]
+  evaluations         Evaluation[]
+  inscriptions        Inscription[]
+  transactions        Transaction[]
+  trimestres          Trimestre[]
+}
+
+model Budget {
+  id                 Int                 @id @default(autoincrement())
+  libelle            String
+  montantPrevu       Float
+  type               TypeTransaction
+  hasAssociation     Boolean             @default(false)
+  anneeId            Int?
+  categorieId        Int?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  annee              Annee?              @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  categorieComptable CategorieComptable? @relation(fields: [categorieId], references: [id], onDelete: NoAction)
+}
+
+model CategorieComptable {
+  id             Int             @id @default(autoincrement())
+  libelle        String          @unique
+  type           TypeTransaction
+  hasAssociation Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  budgets        Budget[]
+  transactions   Transaction[]
+}
+
+model Classe {
+  id                  Int                 @id @default(autoincrement())
+  nom                 String
+  capacite            Int?
+  hasAssociation      Boolean             @default(false)
+  niveauId            Int
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  absences            Absence[]
+  niveau              Niveau              @relation(fields: [niveauId], references: [id], onDelete: NoAction)
+  emploisDuTemps      EmploiDuTemps[]
+  enseignementsAnnees EnseignementAnnee[]
+  evaluations         Evaluation[]
+  inscriptions        Inscription[]
+  retards             Retard[]
+}
+
+model ConfigurationTranche {
+  id             Int       @id @default(autoincrement())
+  niveauId       Int
+  numeroTranche  Int
+  libelle        String
+  montant        Int
+  hasAssociation Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  dateDebut      DateTime?
+  dateFin        DateTime?
+  niveau         Niveau    @relation(fields: [niveauId], references: [id], onDelete: Cascade)
+
+  @@unique([niveauId, numeroTranche])
+}
+
+model CoeficientNiveau {
+  id             Int      @id @default(autoincrement())
+  valeur         Int
+  hasAssociation Boolean  @default(false)
+  niveauId       Int
+  matiereId      Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  matiere        Matiere  @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  niveau         Niveau   @relation(fields: [niveauId], references: [id], onDelete: NoAction)
+
+  @@unique([niveauId, matiereId])
+}
+
+model CoeficientSerie {
+  id             Int      @id @default(autoincrement())
+  valeur         Int
+  hasAssociation Boolean  @default(false)
+  matiereId      Int
+  serieId        Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  niveauId       Int?
+  matiere        Matiere  @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  niveau         Niveau?  @relation(fields: [niveauId], references: [id], onDelete: NoAction)
+  serie          Serie    @relation(fields: [serieId], references: [id], onDelete: NoAction)
+
+  @@unique([matiereId, serieId])
+}
+
+model CompteBancaire {
+  id             Int           @id @default(autoincrement())
+  libelle        String
+  type           TypeCompte
+  soldeInitial   Float         @default(0)
+  hasAssociation Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  transactions   Transaction[]
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  nom       String
+  prenom    String?
+  email     String
+  typeSujet String?
+  message   String?
+  userId    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Cours {
+  id          Int      @id @default(autoincrement())
+  nom         String
+  description String?
+  file        String?
+  userId      Int
+  niveauId    Int?
+  matiereId   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  matiere     Matiere? @relation(fields: [matiereId], references: [id])
+  niveau      Niveau?  @relation(fields: [niveauId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eleves      Eleve[]  @relation("EleveCours")
+}
+
+model Eleve {
+  id             Int           @id @default(autoincrement())
+  userId         Int           @unique
+  hasAssociation Boolean       @default(false)
+  dateNaissance  DateTime
+  acteNaissance  String
+  bulletin       String[]
+  attestation    String?
+  photo          String?
+  filiereId      Int?
+  statut         String        @default("EN_ATTENTE")
+  motifRejet     String?
+  dateValidation DateTime?
+  createdAt      DateTime      @default(now())
+  matricule      String?       @unique
+  updatedAt      DateTime      @updatedAt
+  estHandicape   Boolean       @default(false)
+  absences          Absence[]
+  filiere           Filiere?       @relation(fields: [filiereId], references: [id], onDelete: NoAction)
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inscriptions      Inscription[]
+  notes             Note[]
+  paiements         Paiement[]
+  retards           Retard[]
+  cours             Cours[]        @relation("EleveCours")
+  matieres          Matiere[]      @relation("EleveMatieres")
+  parents           Parent[]       @relation("ParentEleves")
+}
+
+model EnseignementAnnee {
+  id             Int      @id @default(autoincrement())
+  staffId        Int
+  matiereId      Int
+  classeId       Int
+  anneeId        Int
+  volumeHoraire  Int?
+  hasAssociation Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  annee          Annee    @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  classe         Classe   @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  matiere        Matiere  @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  staff          Staff    @relation(fields: [staffId], references: [id], onDelete: NoAction)
+
+  @@unique([staffId, matiereId, classeId, anneeId])
+  @@index([anneeId, classeId, matiereId])
+}
+
+model Evaluation {
+  id             Int        @id @default(autoincrement())
+  type           String
+  date           DateTime
+  bareme         Float?
+  hasAssociation Boolean    @default(false)
+  staffId        Int?
+  matiereId      Int?
+  classeId       Int?
+  trimestreId    Int?
+  anneeId        Int?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  annee          Annee?     @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  classe         Classe?    @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  matiere        Matiere?   @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  staff          Staff?     @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  trimestre      Trimestre? @relation(fields: [trimestreId], references: [id], onDelete: NoAction)
+  notes          Note[]
+}
+
+model Evenement {
+  id             Int             @id @default(autoincrement())
+  nom            String
+  dateDebut      DateTime?
+  dateFin        DateTime?
+  lieu           String?
+  hasAssociation Boolean         @default(false)
+  statut         StatutEvenement @default(EN_ATTENTE)
+  userId         Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  user           User?           @relation(fields: [userId], references: [id])
+}
+
+model Filiere {
+  id             Int          @id @default(autoincrement())
+  nom            String       @unique
+  hasAssociation Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  eleves         Eleve[]
+  specialites    Specialite[]
+}
+
+model Gallery {
+  id          Int      @id @default(autoincrement())
+  image       String
+  description String?
+  userId      Int
+  typeId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  type        Type     @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Inscription {
+  id                         Int        @id @default(autoincrement())
+  eleveId                    Int
+  anneeId                    Int
+  hasAssociation             Boolean    @default(false)
+  createdAt                  DateTime   @default(now())
+  niveauId                   Int
+  classeId                   Int?
+  modePaiement               String     @default("COMPLET")
+  decision                   String?
+  estRedoublant              Boolean    @default(false)
+  moyenneGenerale            Float?
+  nombreBulletinsTelecharges Int        @default(0)
+  updatedAt                  DateTime   @default(now()) @updatedAt
+  cycleActuel                String?
+  nombreRedoublementsCycle   Int        @default(0)
+  annee                      Annee      @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  classe                     Classe?    @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  eleve                      Eleve      @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  niveau                     Niveau     @relation(fields: [niveauId], references: [id], onDelete: NoAction)
+  paiements                  Paiement[]
+}
+
+model LeavePermission {
+  id        Int       @id @default(autoincrement())
+  motif     String?
+  dateDebut DateTime?
+  dateFin   DateTime?
+  statut    String    @default("en attente")
+  userId    Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User?     @relation(fields: [userId], references: [id])
+}
+
+model LigneTransaction {
+  id            Int         @id @default(autoincrement())
+  libelle       String
+  montant       Float
+  quantite      Int         @default(1)
+  transactionId Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Matiere {
+  id                  Int                 @id @default(autoincrement())
+  libelle             String              @unique
+  hasAssociation      Boolean             @default(false)
+  typeMatiereId       Int?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  absences            Absence[]
+  coeficientsNiveau   CoeficientNiveau[]
+  coeficientsSerie    CoeficientSerie[]
+  cours               Cours[]
+  emploisDuTemps      EmploiDuTemps[]
+  enseignementsAnnees EnseignementAnnee[]
+  evaluations         Evaluation[]
+  typeMatiere         TypeMatiere?        @relation(fields: [typeMatiereId], references: [id], onDelete: NoAction)
+  retards             Retard[]
+  videos              Video[]
+  eleves              Eleve[]             @relation("EleveMatieres")
+  specialites         Specialite[]        @relation("SpecialiteMatieres")
+}
+
+model Niveau {
+  id                    Int                    @id @default(autoincrement())
+  nomNiveau             String                 @unique
+  cycle                 String?
+  scolarite             Int?
+  hasAssociation        Boolean                @default(false)
+  typeEnseignementId    Int?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  classes               Classe[]
+  coeficientsNiveau     CoeficientNiveau[]
+  coeficientsSerie      CoeficientSerie[]
+  configurationTranches ConfigurationTranche[]
+  cours                 Cours[]
+  inscriptions          Inscription[]
+  typeEnseignement      TypeEnseignement?      @relation(fields: [typeEnseignementId], references: [id], onDelete: NoAction)
+  series                Serie[]
+  videos                Video[]
+}
+
+model Note {
+  id           Int         @id @default(autoincrement())
+  valeur       Float
+  eleveId      Int
+  evaluationId Int?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  eleve        Eleve       @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  evaluation   Evaluation? @relation(fields: [evaluationId], references: [id], onDelete: NoAction)
+}
+
+model Paiement {
+  id                Int          @id @default(autoincrement())
+  date              DateTime
+  modePaiement      String?
+  montant           Float
+  eleveId           Int?
+  moneroTxHash      String?
+  moneroAddress     String?
+  moneroAmount      String?
+  moneroStatus      String?      @default("pending")
+  moneroBlockHeight Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  hasAssociation    Boolean      @default(false)
+  recu              String?
+  dateEcheance      DateTime?
+  inscriptionId     Int?
+  libelleTranche    String?
+  montantAttendu    Float?
+  numeroTranche     Int?
+  totalTranches     Int?
+  eleve             Eleve?       @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  inscription       Inscription? @relation(fields: [inscriptionId], references: [id], onDelete: NoAction)
+  transaction       Transaction?
+}
+
+model Parent {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  hasAssociation Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eleves         Eleve[]  @relation("ParentEleves")
+}
+
+model Permission {
+  id             Int      @id @default(autoincrement())
+  key            String   @unique
+  description    String?
+  hasAssociation Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  roles          Role[]   @relation("RolesOnPermissions")
+}
+
+model Presentation {
+  id          Int      @id @default(autoincrement())
+  description String?
+  histoire    String?
+  mission     String?
+  phone       String?
+  reseau      Json?
+  email       String?
+  userId      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Retard {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  autorisation  String?
+  justification Boolean
+  confProf      Boolean
+  eleveId       Int
+  matiereId     Int
+  classeId      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        Int?
+  classe        Classe   @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  eleve         Eleve    @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  matiere       Matiere  @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  user          User?    @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model Role {
+  id             Int          @id @default(autoincrement())
+  name           String       @unique
+  description    String?
+  hasAssociation Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  users          User[]
+  permissions    Permission[] @relation("RolesOnPermissions")
+}
+
+model Salaire {
+  id                      Int                   @id @default(autoincrement())
+  mois                    Int
+  annee                   Int
+  heuresNormales          Float                 @default(0)
+  heuresSupplementaires   Float                 @default(0)
+  tauxHoraire             Float                 @default(0)
+  tauxHoraireSupp         Float                 @default(0)
+  montantBrut             Float
+  deductions              Float                 @default(0)
+  montantNet              Float
+  statut                  StatutPaiementSalaire @default(EN_ATTENTE)
+  hasAssociation          Boolean               @default(false)
+  staffId                 Int
+  userId                  Int
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  staff                   Staff                 @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  user                    User                  @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model Serie {
+  id               Int               @id @default(autoincrement())
+  nom              String            @unique
+  hasAssociation   Boolean           @default(false)
+  niveauId         Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  coeficientsSerie CoeficientSerie[]
+  niveau           Niveau            @relation(fields: [niveauId], references: [id], onDelete: NoAction)
+}
+
+model SiteEleve {
+  id        Int      @id @default(autoincrement())
+  nom       String
+  prenom    String?
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Specialite {
+  id             Int       @id @default(autoincrement())
+  nom            String    @unique
+  hasAssociation Boolean   @default(false)
+  filiereId      Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  filiere        Filiere   @relation(fields: [filiereId], references: [id], onDelete: NoAction)
+  matieres       Matiere[] @relation("SpecialiteMatieres")
+}
+
+model Staff {
+  id                  Int                 @id @default(autoincrement())
+  userId              Int                 @unique
+  tauxHoraire         Float               @default(0)
+  isActive            Boolean             @default(true)
+  hasAssociation      Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  absences            Absence[]
+  cahiersTexte        CahierTexte[]
+  emploisDuTemps      EmploiDuTemps[]
+  enseignementsAnnees EnseignementAnnee[]
+  evaluations         Evaluation[]
+  salaires            Salaire[]
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id                 Int                 @id @default(autoincrement())
+  reference          String              @unique
+  libelle            String
+  montant            Float
+  type               TypeTransaction
+  statut             StatutTransaction   @default(EN_ATTENTE)
+  date               DateTime
+  dateEcheance       DateTime?
+  pieceJustificative String?
+  note               String?
+  hasAssociation     Boolean             @default(false)
+  categorieId        Int?
+  compteId           Int?
+  anneeId            Int?
+  userId             Int
+  paiementId         Int?                @unique
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  lignesTransaction  LigneTransaction[]
+  annee              Annee?              @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  categorieComptable CategorieComptable? @relation(fields: [categorieId], references: [id], onDelete: NoAction)
+  compteBancaire     CompteBancaire?     @relation(fields: [compteId], references: [id], onDelete: NoAction)
+  paiement           Paiement?           @relation(fields: [paiementId], references: [id], onDelete: NoAction)
+  user               User                @relation(fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model Trimestre {
+  id             Int             @id @default(autoincrement())
+  nom            String
+  dateDebut      DateTime?
+  dateFin        DateTime?
+  hasAssociation Boolean         @default(false)
+  anneeId        Int
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  invalide       Boolean         @default(false)
+  emploisDuTemps EmploiDuTemps[]
+  evaluations    Evaluation[]
+  annee          Annee           @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+}
+
+model Type {
+  id             Int         @id @default(autoincrement())
+  nom            String
+  hasAssociation Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  actualites     Actualite[]
+  galleries      Gallery[]
+}
+
+model TypeEnseignement {
+  id             Int                  @id @default(autoincrement())
+  nom            TypeEnseignementEnum @unique
+  hasAssociation Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  niveaux        Niveau[]
+}
+
+model TypeMatiere {
+  id             Int       @id @default(autoincrement())
+  libelle        String
+  hasAssociation Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  matieres       Matiere[]
+}
+
+model User {
+  id                   Int               @id @default(autoincrement())
+  nom                  String
+  prenom               String
+  email                String            @unique
+  password             String
+  adresse              String?
+  phone                String?
+  hasAssociation       Boolean           @default(false)
+  resetPasswordToken   String?           @unique
+  resetPasswordExpires DateTime?
+  roleId               Int?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  sexe                 String?
+  photoUrl             String?
+  absences             Absence[]
+  accueils             Accueil[]
+  actualites           Actualite[]
+  contacts             Contact[]
+  cours                Cours[]
+  eleve                Eleve?
+  evenements           Evenement[]
+  galleries            Gallery[]
+  leavePermissions     LeavePermission[]
+  parent               Parent?
+  presentations        Presentation[]
+  retards              Retard[]
+  salaires             Salaire[]
+  siteEleves           SiteEleve[]
+  staff                Staff?
+  transactions         Transaction[]
+  role                 Role?             @relation(fields: [roleId], references: [id], onDelete: NoAction)
+  videos               Video[]
+}
+
+model Video {
+  id          Int      @id @default(autoincrement())
+  fileVideo   String
+  description String?
+  userId      Int
+  niveauId    Int?
+  matiereId   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  matiere     Matiere? @relation(fields: [matiereId], references: [id])
+  niveau      Niveau?  @relation(fields: [niveauId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmploiDuTemps {
+  id          Int        @id @default(autoincrement())
+  classeId    Int
+  anneeId     Int
+  trimestreId Int?
+  jour        Int
+  heureDebut  String
+  heureFin    String
+  matiereId   Int
+  staffId     Int
+  couleur     String?
+  actif       Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  annee       Annee      @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+  classe      Classe     @relation(fields: [classeId], references: [id], onDelete: NoAction)
+  matiere     Matiere    @relation(fields: [matiereId], references: [id], onDelete: NoAction)
+  staff       Staff      @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  trimestre   Trimestre? @relation(fields: [trimestreId], references: [id], onDelete: NoAction)
+  seances     Seance[]
+
+  @@unique([classeId, jour, heureDebut, trimestreId])
+  @@index([classeId, anneeId])
+  @@index([staffId, anneeId])
+}
+
+model Seance {
+  id              Int           @id @default(autoincrement())
+  emploiDuTempsId Int
+  date            DateTime
+  statut          String        @default("PLANIFIE")
+  motifAnnulation String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  cahierTexte     CahierTexte?
+  emploiDuTemps   EmploiDuTemps @relation(fields: [emploiDuTempsId], references: [id], onDelete: Cascade)
+
+  @@unique([emploiDuTempsId, date])
+}
+
+model CahierTexte {
+  id            Int       @id @default(autoincrement())
+  seanceId      Int       @unique
+  contenu       String
+  devoirs       String?
+  dateRemise    DateTime?
+  observations  String?
+  fichiers      String[]
+  staffId       Int
+  valide        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  dateSignature DateTime?
+  signatureProf String?
+  seance        Seance    @relation(fields: [seanceId], references: [id], onDelete: Cascade)
+  staff         Staff     @relation(fields: [staffId], references: [id], onDelete: NoAction)
+}
+
+model Licence {
+  id                  Int       @id @default(autoincrement())
+  cleApi              String    @unique
+  nomEcole            String
+  emailContact        String
+  telephoneContact    String?
+  dateActivation      DateTime  @default(now())
+  dateExpiration      DateTime
+  estActif            Boolean   @default(true)
+  nombreAppels        Int       @default(0)
+  derniereUtilisation DateTime?
+  hasAssociation      Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+enum StatutEvenement {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+}
+
+enum StatutPaiementSalaire {
+  EN_ATTENTE
+  PAYE
+  ANNULE
+}
+
+enum StatutTransaction {
+  EN_ATTENTE
+  VALIDE
+  ANNULE
+}
+
+enum TypeCompte {
+  CAISSE
+  BANQUE
+}
+
+enum TypeEnseignementEnum {
+  GENERAL
+  TECHNIQUE
+  PRIMAIRE
+  MATERNELLE
+  CRECHE
+}
+
+enum TypeTransaction {
+  RECETTE
+  DEPENSE
+}
+
+
+
+// ─── CONFIGURATION ÉCOLE ─────────────────────────────────────────────────────
+
+model ConfigurationEcole {
+  id               Int      @id @default(autoincrement())
+  // Identité
+  nomEcole         String
+  ville            String?
+  devise           String?  // "La Patrie ou la Mort, nous Vaincrons"
+  // Hiérarchie administrative
+  ministere        String?  // "MINISTERE DE L'ENSEIGNEMENT SECONDAIRE..."
+  directionRegionale   String?
+  directionProvinciale String?
+  // Format numéro de document
+  codeRegion       String?  // "DRESFPT-YDG"
+  codeProvince     String?  // "DPESFPT-PSR"
+  codeEcole        String?  // "CEG-YK-5"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ─── MOTEUR DE GÉNÉRATION DE DOCUMENTS ───────────────────────────────────────
+
