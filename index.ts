@@ -67,10 +67,11 @@ const app: Application = express();
 
 app.use(express.json());
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173','http://localhost:5174'];
-
+const allowedOrigins = [
+  'https://beniso.edutrackhub.cloud',
+  'https://apibeniso.edutrackhub.cloud',
+  'http://localhost:5173'
+];
 // En développement, autoriser toutes les origines localhost
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
