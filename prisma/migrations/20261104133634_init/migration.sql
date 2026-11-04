@@ -8,6 +8,9 @@ CREATE TYPE "StatutPaiementSalaire" AS ENUM ('EN_ATTENTE', 'PAYE', 'ANNULE');
 CREATE TYPE "StatutTransaction" AS ENUM ('EN_ATTENTE', 'VALIDE', 'ANNULE');
 
 -- CreateEnum
+CREATE TYPE "StatutDocument" AS ENUM ('GENERE', 'SIGNE', 'DELIVRE', 'ANNULE');
+
+-- CreateEnum
 CREATE TYPE "TypeCompte" AS ENUM ('CAISSE', 'BANQUE');
 
 -- CreateEnum
@@ -38,7 +41,9 @@ CREATE TABLE "Absence" (
 CREATE TABLE "Accueil" (
     "id" SERIAL NOT NULL,
     "nom" TEXT NOT NULL,
+    "titre" TEXT,
     "description" TEXT,
+    "logoEcole" TEXT,
     "images" TEXT[],
     "userId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -152,6 +157,7 @@ CREATE TABLE "CoeficientSerie" (
     "serieId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "niveauId" INTEGER,
 
     CONSTRAINT "CoeficientSerie_pkey" PRIMARY KEY ("id")
 );
@@ -208,12 +214,32 @@ CREATE TABLE "Eleve" (
     "acteNaissance" TEXT NOT NULL,
     "bulletin" TEXT[],
     "attestation" TEXT,
+    "photo" TEXT,
     "filiereId" INTEGER,
+    "statut" TEXT NOT NULL DEFAULT 'EN_ATTENTE',
+    "motifRejet" TEXT,
+    "dateValidation" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "matricule" TEXT,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "estHandicape" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Eleve_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EnseignementAnnee" (
+    "id" SERIAL NOT NULL,
+    "staffId" INTEGER NOT NULL,
+    "matiereId" INTEGER NOT NULL,
+    "classeId" INTEGER NOT NULL,
+    "anneeId" INTEGER NOT NULL,
+    "volumeHoraire" INTEGER,
+    "hasAssociation" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EnseignementAnnee_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -284,6 +310,13 @@ CREATE TABLE "Inscription" (
     "niveauId" INTEGER NOT NULL,
     "classeId" INTEGER,
     "modePaiement" TEXT NOT NULL DEFAULT 'COMPLET',
+    "decision" TEXT,
+    "estRedoublant" BOOLEAN NOT NULL DEFAULT false,
+    "moyenneGenerale" DOUBLE PRECISION,
+    "nombreBulletinsTelecharges" INTEGER NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "cycleActuel" TEXT,
+    "nombreRedoublementsCycle" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Inscription_pkey" PRIMARY KEY ("id")
 );
@@ -452,6 +485,10 @@ CREATE TABLE "Salaire" (
     "id" SERIAL NOT NULL,
     "mois" INTEGER NOT NULL,
     "annee" INTEGER NOT NULL,
+    "heuresNormales" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "heuresSupplementaires" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "tauxHoraire" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "tauxHoraireSupp" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "montantBrut" DOUBLE PRECISION NOT NULL,
     "deductions" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "montantNet" DOUBLE PRECISION NOT NULL,
@@ -505,6 +542,8 @@ CREATE TABLE "Specialite" (
 CREATE TABLE "Staff" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
+    "tauxHoraire" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "hasAssociation" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -546,6 +585,7 @@ CREATE TABLE "Trimestre" (
     "anneeId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "invalide" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Trimestre_pkey" PRIMARY KEY ("id")
 );
@@ -592,13 +632,14 @@ CREATE TABLE "User" (
     "password" TEXT NOT NULL,
     "adresse" TEXT,
     "phone" TEXT,
-    "actif" BOOLEAN NOT NULL DEFAULT true,
     "hasAssociation" BOOLEAN NOT NULL DEFAULT false,
     "resetPasswordToken" TEXT,
     "resetPasswordExpires" TIMESTAMP(3),
     "roleId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "sexe" TEXT,
+    "photoUrl" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -615,6 +656,188 @@ CREATE TABLE "Video" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Video_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmploiDuTemps" (
+    "id" SERIAL NOT NULL,
+    "classeId" INTEGER NOT NULL,
+    "anneeId" INTEGER NOT NULL,
+    "trimestreId" INTEGER,
+    "jour" INTEGER NOT NULL,
+    "heureDebut" TEXT NOT NULL,
+    "heureFin" TEXT NOT NULL,
+    "matiereId" INTEGER NOT NULL,
+    "staffId" INTEGER NOT NULL,
+    "couleur" TEXT,
+    "actif" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmploiDuTemps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Seance" (
+    "id" SERIAL NOT NULL,
+    "emploiDuTempsId" INTEGER NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "statut" TEXT NOT NULL DEFAULT 'PLANIFIE',
+    "motifAnnulation" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Seance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CahierTexte" (
+    "id" SERIAL NOT NULL,
+    "seanceId" INTEGER NOT NULL,
+    "contenu" TEXT NOT NULL,
+    "devoirs" TEXT,
+    "dateRemise" TIMESTAMP(3),
+    "observations" TEXT,
+    "fichiers" TEXT[],
+    "staffId" INTEGER NOT NULL,
+    "valide" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "dateSignature" TIMESTAMP(3),
+    "signatureProf" TEXT,
+
+    CONSTRAINT "CahierTexte_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Licence" (
+    "id" SERIAL NOT NULL,
+    "cleApi" TEXT NOT NULL,
+    "nomEcole" TEXT NOT NULL,
+    "emailContact" TEXT NOT NULL,
+    "telephoneContact" TEXT,
+    "dateActivation" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "dateExpiration" TIMESTAMP(3) NOT NULL,
+    "estActif" BOOLEAN NOT NULL DEFAULT true,
+    "nombreAppels" INTEGER NOT NULL DEFAULT 0,
+    "derniereUtilisation" TIMESTAMP(3),
+    "hasAssociation" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Licence_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ConfigurationEcole" (
+    "id" SERIAL NOT NULL,
+    "nomEcole" TEXT NOT NULL,
+    "ville" TEXT,
+    "devise" TEXT,
+    "ministere" TEXT,
+    "directionRegionale" TEXT,
+    "directionProvinciale" TEXT,
+    "codeRegion" TEXT,
+    "codeProvince" TEXT,
+    "codeEcole" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ConfigurationEcole_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentType" (
+    "id" SERIAL NOT NULL,
+    "code" TEXT NOT NULL,
+    "nom" TEXT NOT NULL,
+    "description" TEXT,
+    "actif" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "DocumentType_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentTemplate" (
+    "id" SERIAL NOT NULL,
+    "documentTypeId" INTEGER NOT NULL,
+    "nom" TEXT NOT NULL,
+    "description" TEXT,
+    "contenuCorps" TEXT NOT NULL,
+    "formatNumero" TEXT,
+    "actif" BOOLEAN NOT NULL DEFAULT true,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "DocumentTemplate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TemplateEnTete" (
+    "id" SERIAL NOT NULL,
+    "templateId" INTEGER NOT NULL,
+    "ordre" INTEGER NOT NULL,
+    "libelle" TEXT NOT NULL,
+    "separateur" TEXT NOT NULL DEFAULT '*********',
+
+    CONSTRAINT "TemplateEnTete_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TemplateSignataire" (
+    "id" SERIAL NOT NULL,
+    "templateId" INTEGER NOT NULL,
+    "ordre" INTEGER NOT NULL,
+    "fonction" TEXT NOT NULL,
+    "userId" INTEGER,
+    "nomParDefaut" TEXT,
+    "gradeParDefaut" TEXT,
+    "imageSignature" TEXT,
+
+    CONSTRAINT "TemplateSignataire_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentVariable" (
+    "id" SERIAL NOT NULL,
+    "documentTypeId" INTEGER,
+    "categorie" TEXT NOT NULL,
+    "nom" TEXT NOT NULL,
+    "variable" TEXT NOT NULL,
+    "description" TEXT,
+    "exemple" TEXT,
+    "obligatoire" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "DocumentVariable_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentCompteur" (
+    "id" SERIAL NOT NULL,
+    "templateId" INTEGER NOT NULL,
+    "documentTypeId" INTEGER NOT NULL,
+    "anneeId" INTEGER NOT NULL,
+    "dernierNumero" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "DocumentCompteur_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentGenere" (
+    "id" SERIAL NOT NULL,
+    "templateId" INTEGER NOT NULL,
+    "eleveId" INTEGER,
+    "inscriptionId" INTEGER,
+    "numero" TEXT NOT NULL,
+    "donneesBrutes" JSONB NOT NULL,
+    "fichierPdf" TEXT,
+    "fichierDocx" TEXT,
+    "statut" "StatutDocument" NOT NULL DEFAULT 'GENERE',
+    "genereParId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DocumentGenere_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -676,6 +899,12 @@ CREATE UNIQUE INDEX "Eleve_userId_key" ON "Eleve"("userId");
 CREATE UNIQUE INDEX "Eleve_matricule_key" ON "Eleve"("matricule");
 
 -- CreateIndex
+CREATE INDEX "EnseignementAnnee_anneeId_classeId_matiereId_idx" ON "EnseignementAnnee"("anneeId", "classeId", "matiereId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EnseignementAnnee_staffId_matiereId_classeId_anneeId_key" ON "EnseignementAnnee"("staffId", "matiereId", "classeId", "anneeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Filiere_nom_key" ON "Filiere"("nom");
 
 -- CreateIndex
@@ -716,6 +945,33 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_resetPasswordToken_key" ON "User"("resetPasswordToken");
+
+-- CreateIndex
+CREATE INDEX "EmploiDuTemps_classeId_anneeId_idx" ON "EmploiDuTemps"("classeId", "anneeId");
+
+-- CreateIndex
+CREATE INDEX "EmploiDuTemps_staffId_anneeId_idx" ON "EmploiDuTemps"("staffId", "anneeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmploiDuTemps_classeId_jour_heureDebut_trimestreId_key" ON "EmploiDuTemps"("classeId", "jour", "heureDebut", "trimestreId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Seance_emploiDuTempsId_date_key" ON "Seance"("emploiDuTempsId", "date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CahierTexte_seanceId_key" ON "CahierTexte"("seanceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Licence_cleApi_key" ON "Licence"("cleApi");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DocumentType_code_key" ON "DocumentType"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DocumentVariable_variable_key" ON "DocumentVariable"("variable");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DocumentCompteur_templateId_documentTypeId_anneeId_key" ON "DocumentCompteur"("templateId", "documentTypeId", "anneeId");
 
 -- CreateIndex
 CREATE INDEX "_EleveCours_B_index" ON "_EleveCours"("B");
@@ -778,6 +1034,9 @@ ALTER TABLE "CoeficientNiveau" ADD CONSTRAINT "CoeficientNiveau_niveauId_fkey" F
 ALTER TABLE "CoeficientSerie" ADD CONSTRAINT "CoeficientSerie_matiereId_fkey" FOREIGN KEY ("matiereId") REFERENCES "Matiere"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CoeficientSerie" ADD CONSTRAINT "CoeficientSerie_niveauId_fkey" FOREIGN KEY ("niveauId") REFERENCES "Niveau"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "CoeficientSerie" ADD CONSTRAINT "CoeficientSerie_serieId_fkey" FOREIGN KEY ("serieId") REFERENCES "Serie"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -797,6 +1056,18 @@ ALTER TABLE "Eleve" ADD CONSTRAINT "Eleve_filiereId_fkey" FOREIGN KEY ("filiereI
 
 -- AddForeignKey
 ALTER TABLE "Eleve" ADD CONSTRAINT "Eleve_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EnseignementAnnee" ADD CONSTRAINT "EnseignementAnnee_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EnseignementAnnee" ADD CONSTRAINT "EnseignementAnnee_classeId_fkey" FOREIGN KEY ("classeId") REFERENCES "Classe"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EnseignementAnnee" ADD CONSTRAINT "EnseignementAnnee_matiereId_fkey" FOREIGN KEY ("matiereId") REFERENCES "Matiere"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EnseignementAnnee" ADD CONSTRAINT "EnseignementAnnee_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Evaluation" ADD CONSTRAINT "Evaluation_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
@@ -925,6 +1196,66 @@ ALTER TABLE "Video" ADD CONSTRAINT "Video_niveauId_fkey" FOREIGN KEY ("niveauId"
 ALTER TABLE "Video" ADD CONSTRAINT "Video_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "EmploiDuTemps" ADD CONSTRAINT "EmploiDuTemps_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploiDuTemps" ADD CONSTRAINT "EmploiDuTemps_classeId_fkey" FOREIGN KEY ("classeId") REFERENCES "Classe"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploiDuTemps" ADD CONSTRAINT "EmploiDuTemps_matiereId_fkey" FOREIGN KEY ("matiereId") REFERENCES "Matiere"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploiDuTemps" ADD CONSTRAINT "EmploiDuTemps_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploiDuTemps" ADD CONSTRAINT "EmploiDuTemps_trimestreId_fkey" FOREIGN KEY ("trimestreId") REFERENCES "Trimestre"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Seance" ADD CONSTRAINT "Seance_emploiDuTempsId_fkey" FOREIGN KEY ("emploiDuTempsId") REFERENCES "EmploiDuTemps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CahierTexte" ADD CONSTRAINT "CahierTexte_seanceId_fkey" FOREIGN KEY ("seanceId") REFERENCES "Seance"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CahierTexte" ADD CONSTRAINT "CahierTexte_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentTemplate" ADD CONSTRAINT "DocumentTemplate_documentTypeId_fkey" FOREIGN KEY ("documentTypeId") REFERENCES "DocumentType"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TemplateEnTete" ADD CONSTRAINT "TemplateEnTete_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "DocumentTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TemplateSignataire" ADD CONSTRAINT "TemplateSignataire_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "DocumentTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TemplateSignataire" ADD CONSTRAINT "TemplateSignataire_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentVariable" ADD CONSTRAINT "DocumentVariable_documentTypeId_fkey" FOREIGN KEY ("documentTypeId") REFERENCES "DocumentType"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentCompteur" ADD CONSTRAINT "DocumentCompteur_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "DocumentTemplate"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentCompteur" ADD CONSTRAINT "DocumentCompteur_documentTypeId_fkey" FOREIGN KEY ("documentTypeId") REFERENCES "DocumentType"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentCompteur" ADD CONSTRAINT "DocumentCompteur_anneeId_fkey" FOREIGN KEY ("anneeId") REFERENCES "Annee"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentGenere" ADD CONSTRAINT "DocumentGenere_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "DocumentTemplate"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentGenere" ADD CONSTRAINT "DocumentGenere_eleveId_fkey" FOREIGN KEY ("eleveId") REFERENCES "Eleve"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentGenere" ADD CONSTRAINT "DocumentGenere_inscriptionId_fkey" FOREIGN KEY ("inscriptionId") REFERENCES "Inscription"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentGenere" ADD CONSTRAINT "DocumentGenere_genereParId_fkey" FOREIGN KEY ("genereParId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "_EleveCours" ADD CONSTRAINT "_EleveCours_A_fkey" FOREIGN KEY ("A") REFERENCES "Cours"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -953,4 +1284,3 @@ ALTER TABLE "_RolesOnPermissions" ADD CONSTRAINT "_RolesOnPermissions_A_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "_RolesOnPermissions" ADD CONSTRAINT "_RolesOnPermissions_B_fkey" FOREIGN KEY ("B") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

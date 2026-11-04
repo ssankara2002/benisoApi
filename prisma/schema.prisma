@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -68,6 +69,7 @@ model Annee {
   inscriptions        Inscription[]
   transactions        Transaction[]
   trimestres          Trimestre[]
+  documentCompteurs   DocumentCompteur[]
 }
 
 model Budget {
@@ -215,16 +217,17 @@ model Eleve {
   matricule      String?       @unique
   updatedAt      DateTime      @updatedAt
   estHandicape   Boolean       @default(false)
-  absences          Absence[]
-  filiere           Filiere?       @relation(fields: [filiereId], references: [id], onDelete: NoAction)
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inscriptions      Inscription[]
-  notes             Note[]
-  paiements         Paiement[]
-  retards           Retard[]
-  cours             Cours[]        @relation("EleveCours")
-  matieres          Matiere[]      @relation("EleveMatieres")
-  parents           Parent[]       @relation("ParentEleves")
+  absences       Absence[]
+  filiere        Filiere?      @relation(fields: [filiereId], references: [id], onDelete: NoAction)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inscriptions   Inscription[]
+  notes          Note[]
+  paiements      Paiement[]
+  retards        Retard[]
+  cours          Cours[]       @relation("EleveCours")
+  matieres       Matiere[]     @relation("EleveMatieres")
+  parents        Parent[]      @relation("ParentEleves")
+  documentsGeneres DocumentGenere[]
 }
 
 model EnseignementAnnee {
@@ -324,6 +327,7 @@ model Inscription {
   eleve                      Eleve      @relation(fields: [eleveId], references: [id], onDelete: NoAction)
   niveau                     Niveau     @relation(fields: [niveauId], references: [id], onDelete: NoAction)
   paiements                  Paiement[]
+  documentsGeneres           DocumentGenere[]
 }
 
 model LeavePermission {
@@ -374,7 +378,7 @@ model Niveau {
   id                    Int                    @id @default(autoincrement())
   nomNiveau             String                 @unique
   cycle                 String?
-  scolarite             Int?
+  scolarite              Int?
   hasAssociation        Boolean                @default(false)
   typeEnseignementId    Int?
   createdAt             DateTime               @default(now())
@@ -664,6 +668,8 @@ model User {
   transactions         Transaction[]
   role                 Role?             @relation(fields: [roleId], references: [id], onDelete: NoAction)
   videos               Video[]
+  templatesSignes      TemplateSignataire[] @relation("TemplateSignataireUser")
+  documentsGeneresCrees DocumentGenere[]    @relation("DocumentGenereAuteur")
 }
 
 model Video {
@@ -754,6 +760,124 @@ model Licence {
   updatedAt           DateTime  @updatedAt
 }
 
+model ConfigurationEcole {
+  id                   Int      @id @default(autoincrement())
+  nomEcole             String
+  ville                String?
+  devise               String?
+  ministere            String?
+  directionRegionale   String?
+  directionProvinciale String?
+  codeRegion           String?
+  codeProvince         String?
+  codeEcole            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── MOTEUR DE GÉNÉRATION DE DOCUMENTS ─────────────────────────────
+
+model DocumentType {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  nom         String
+  description String?
+  actif       Boolean  @default(true)
+
+  templates DocumentTemplate[]
+  variables DocumentVariable[]
+  compteurs DocumentCompteur[]
+}
+
+model DocumentTemplate {
+  id             Int      @id @default(autoincrement())
+  documentTypeId Int
+  nom            String
+  description    String?
+  contenuCorps   String
+  formatNumero   String?
+  actif          Boolean  @default(true)
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  documentType DocumentType       @relation(fields: [documentTypeId], references: [id], onDelete: NoAction)
+  entetes      TemplateEnTete[]
+  signataires  TemplateSignataire[]
+  compteurs    DocumentCompteur[]
+  documents    DocumentGenere[]
+}
+
+model TemplateEnTete {
+  id         Int    @id @default(autoincrement())
+  templateId Int
+  ordre      Int
+  libelle    String
+  separateur String @default("*********")
+
+  template DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model TemplateSignataire {
+  id             Int     @id @default(autoincrement())
+  templateId     Int
+  ordre          Int
+  fonction       String
+  userId         Int?
+  nomParDefaut   String?
+  gradeParDefaut String?
+  imageSignature String?
+
+  template DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User?            @relation("TemplateSignataireUser", fields: [userId], references: [id], onDelete: NoAction)
+}
+
+model DocumentVariable {
+  id             Int     @id @default(autoincrement())
+  documentTypeId Int?
+  categorie      String
+  nom            String
+  variable       String  @unique
+  description    String?
+  exemple        String?
+  obligatoire    Boolean @default(false)
+
+  documentType DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: NoAction)
+}
+
+model DocumentCompteur {
+  id             Int @id @default(autoincrement())
+  templateId     Int
+  documentTypeId Int
+  anneeId        Int
+  dernierNumero  Int @default(0)
+
+  template     DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: NoAction)
+  documentType DocumentType     @relation(fields: [documentTypeId], references: [id], onDelete: NoAction)
+  annee        Annee            @relation(fields: [anneeId], references: [id], onDelete: NoAction)
+
+  @@unique([templateId, documentTypeId, anneeId])
+}
+
+model DocumentGenere {
+  id             Int            @id @default(autoincrement())
+  templateId     Int
+  eleveId        Int?
+  inscriptionId  Int?
+  numero         String
+  donneesBrutes  Json
+  fichierPdf     String?
+  fichierDocx    String?
+  statut         StatutDocument @default(GENERE)
+  genereParId    Int
+  createdAt      DateTime       @default(now())
+
+  template    DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: NoAction)
+  eleve       Eleve?            @relation(fields: [eleveId], references: [id], onDelete: NoAction)
+  inscription Inscription?      @relation(fields: [inscriptionId], references: [id], onDelete: NoAction)
+  generePar   User              @relation("DocumentGenereAuteur", fields: [genereParId], references: [id], onDelete: NoAction)
+}
+
 enum StatutEvenement {
   EN_ATTENTE
   EN_COURS
@@ -769,6 +893,13 @@ enum StatutPaiementSalaire {
 enum StatutTransaction {
   EN_ATTENTE
   VALIDE
+  ANNULE
+}
+
+enum StatutDocument {
+  GENERE
+  SIGNE
+  DELIVRE
   ANNULE
 }
 
@@ -789,28 +920,3 @@ enum TypeTransaction {
   RECETTE
   DEPENSE
 }
-
-
-
-// ─── CONFIGURATION ÉCOLE ─────────────────────────────────────────────────────
-
-model ConfigurationEcole {
-  id               Int      @id @default(autoincrement())
-  // Identité
-  nomEcole         String
-  ville            String?
-  devise           String?  // "La Patrie ou la Mort, nous Vaincrons"
-  // Hiérarchie administrative
-  ministere        String?  // "MINISTERE DE L'ENSEIGNEMENT SECONDAIRE..."
-  directionRegionale   String?
-  directionProvinciale String?
-  // Format numéro de document
-  codeRegion       String?  // "DRESFPT-YDG"
-  codeProvince     String?  // "DPESFPT-PSR"
-  codeEcole        String?  // "CEG-YK-5"
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-// ─── MOTEUR DE GÉNÉRATION DE DOCUMENTS ───────────────────────────────────────
-
